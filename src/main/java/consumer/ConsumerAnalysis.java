@@ -2,14 +2,12 @@
 package consumer;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -31,21 +29,23 @@ public class ConsumerAnalysis {
 
     public static void main(String[] args) {
         Properties properties = initConfig();
-        KafkaConsumer<String,String> consumer = new KafkaConsumer(properties);
-        consumer.subscribe(Arrays.asList(topic));
-        try {
-            while (isRunning.get()) {
-                System.out.println("running");
-                ConsumerRecords<String, String> records =
-                        consumer.poll(Duration.ofMillis(1000));
-                records.forEach(e -> {
-                    System.out.println(e.toString());
-                });
+        KafkaConsumer<String, String> consumer = new KafkaConsumer(properties);
+        TopicPartition tp = new TopicPartition(topic, 0);
+        consumer.assign(Arrays.asList(tp));
+        while (isRunning.get()) {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+            for (TopicPartition partition : records.partitions()) {
+                List<ConsumerRecord<String, String>> partitionRecords = records.records(partition);
+                for (ConsumerRecord<String, String> record : partitionRecords) {
+                    System.out.println(record.toString());
+                }
             }
-        } catch (Exception e) {
-            log.error("occur exception ", e);
-        } finally {
-            consumer.close();
         }
+        consumer.commitAsync((offsets, exception) -> {
+            if (exception == null) {
+                System.out.println(offsets);
+            } else
+                System.out.println("fail to commit offsets " + offsets + exception);
+        });
     }
 }
