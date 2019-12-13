@@ -35,6 +35,7 @@ public class ConsumerAnalysis {
         consumer.subscribe(Arrays.asList(topic));
         try {
             while (isRunning.get()) {
+                System.out.println("running");
                 ConsumerRecords<String, String> records =
                         consumer.poll(Duration.ofMillis(1000));
                 records.forEach(e -> {
