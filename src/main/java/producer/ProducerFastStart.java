@@ -35,6 +35,7 @@ public class ProducerFastStart {
 //                            metadata.partition() + ":" + metadata.offset());
 //                }
 //            });
+            for (int i=100;i>0;i--)
             producer.send(record);
         } catch (Exception e) {
             e.printStackTrace();
